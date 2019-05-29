@@ -7,7 +7,11 @@
 #ifdef FILESYS
 #include "filesys/file.h"
 #endif
-
+
+//inbae : define new variable
+//latest position after allocation for next-fit
+size_t latest = -1;
+
 /* Element type.
 
    This must be an unsigned integer type at least as wide as int.
@@ -308,9 +312,44 @@ bitmap_scan (const struct bitmap *b, size_t start, size_t cnt, bool value)
           return i; 
     }
   //inbae : best-fit
+  //we need a new variable that contain latest position after allocation.
+  //
+  //
   //inbae : next-fit
   //inbae : buddy
   return BITMAP_ERROR;
+}
+
+//inbae : implements next-fit
+//	  variable latest(size_t) : latest position
+size_t
+bitmap_scan_for_nextfit (const struct bitmap *b, size_t start, size_t cnt, bool value)
+{
+	ASSERT (b != NULL);
+	ASSERT (start <= b->bit_cnt);
+
+	//if latest is not assigned, initialize latest = start
+	if(latest == -1) latest = start;	
+
+	if(cnt <= b->bit_cnt)
+	{
+		size_t last = b->bit_cnt -cnt;
+		size_t i;
+		for(i=latest;i<=last;i++)
+			if(!bitmap_contains (b, i, cnt, !value)){
+				latest = i + cnt + 1;
+				return i;
+			}
+		for(i=start; i<latest;i++)
+			if(!bitmap_contains (b, i, cnt, !value)){
+				latest = i + cnt + 1;
+				return i;
+			}
+
+	}
+
+
+	return BITMAP_ERROR;
 }
 
 /* Finds the first group of CNT consecutive bits in B at or after
