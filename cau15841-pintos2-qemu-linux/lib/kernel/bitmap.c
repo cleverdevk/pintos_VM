@@ -303,28 +303,29 @@ bitmap_scan (const struct bitmap *b, size_t start, size_t cnt, bool value)
   ASSERT (start <= b->bit_cnt);
 
   //inbae : first-fit(initially implemented)
+  int count = 0; // inbae : for estimating cost of searching.
+
   if (cnt <= b->bit_cnt) 
     {
       size_t last = b->bit_cnt - cnt;
       size_t i;
       for (i = start; i <= last; i++)
-        if (!bitmap_contains (b, i, cnt, !value))
-          return i; 
+        if (!bitmap_contains (b, i, cnt, !value)){
+          	count++;
+		printf("[SUCCESS ALLOCATION] Search Cost : %d\n",count);
+		return i; 
+	}
     }
-  //inbae : best-fit
-  //we need a new variable that contain latest position after allocation.
-  //
-  //
-  //inbae : next-fit
-  //inbae : buddy
+  printf("[FAIL ALLOCATION] Search Cost : %d\n", count);
   return BITMAP_ERROR;
 }
 
 //inbae : implements next-fit
-//	  variable latest(size_t) : latest position
+//	  variable latest(size_t) : latest position (Global)
 size_t
 bitmap_scan_for_nextfit (const struct bitmap *b, size_t start, size_t cnt, bool value)
 {
+	int count = 0; // inbae : for estimating cost of searching.
 	ASSERT (b != NULL);
 	ASSERT (start <= b->bit_cnt);
 
@@ -334,23 +335,29 @@ bitmap_scan_for_nextfit (const struct bitmap *b, size_t start, size_t cnt, bool 
 	if(cnt <= b->bit_cnt)
 	{
 		size_t last = b->bit_cnt -cnt;
+		size_t last_latest = latest - cnt;
 		size_t i;
 		for(i=latest;i<=last;i++)
 			if(!bitmap_contains (b, i, cnt, !value)){
+				count++;
 				latest = i + cnt + 1;
+				printf("[SUCCESS ALLOCATION] Search Cost : %d, latest : %d\n",count,latest);
 				return i;
 			}
-		for(i=start; i<latest;i++)
+		for(i=start; i<=last_latest;i++)
 			if(!bitmap_contains (b, i, cnt, !value)){
+				count++;
 				latest = i + cnt + 1;
+				printf("[SUCCESS ALLOCATION] Search Cost : %d, latest : %d\n", count, latest);
 				return i;
 			}
 
 	}
 
-
+	printf("[FAIL ALLOCATION] Search Cost : %d\n",count);
 	return BITMAP_ERROR;
 }
+
 
 /* Finds the first group of CNT consecutive bits in B at or after
    START that are all set to VALUE, flips them all to !VALUE,
@@ -362,7 +369,7 @@ bitmap_scan_for_nextfit (const struct bitmap *b, size_t start, size_t cnt, bool 
 size_t
 bitmap_scan_and_flip (struct bitmap *b, size_t start, size_t cnt, bool value)
 {
-  size_t idx = bitmap_scan (b, start, cnt, value);
+  size_t idx = bitmap_scan_for_nextfit (b, start, cnt, value);
   if (idx != BITMAP_ERROR) 
     bitmap_set_multiple (b, idx, cnt, !value);
   return idx;
