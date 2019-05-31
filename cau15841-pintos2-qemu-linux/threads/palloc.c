@@ -139,6 +139,10 @@ palloc_free_multiple (void *pages, size_t page_cnt)
 
   ASSERT (bitmap_all (pool->used_map, page_idx, page_cnt));
   bitmap_set_multiple (pool->used_map, page_idx, page_cnt, false);
+
+	size_t scale = cnt_to_buddy_size(page_cnt);
+	add_node(pages, getScaleHEAD(head, scale), scale);
+
 }
 
 /* Frees the page at PAGE. */

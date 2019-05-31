@@ -12,6 +12,10 @@
 //latest position after allocation for next-fit
 size_t latest = -1;
 
+//byounggook
+size_t new_size = -1;
+size_t new_adr = -1;
+
 /* Element type.
 
    This must be an unsigned integer type at least as wide as int.
@@ -358,6 +362,121 @@ bitmap_scan_for_nextfit (const struct bitmap *b, size_t start, size_t cnt, bool 
 	return BITMAP_ERROR;
 }
 
+//byounggook
+
+size_t
+cnt_to_buddy_size (size_t cnt)
+{
+	ASSERT (cnt <= 256);
+	
+	if(cnt > 128)
+		return 256;
+	else if(cnt > 64)
+		return 128;
+	else if(cnt > 32)
+		return 64;
+	else if(cnt > 16)
+		return 32;
+	else if(cnt > 8)
+		return 16;
+	else if(cnt > 4)
+		return 8;
+	else if(cnt > 2)
+		return 4;
+	else if(cnt > 1)
+		return 2;
+	else
+		return 1;
+}
+
+size_t
+bitmap_scan_for_buddy (const struct bitmap *b, size_t start, size_t cnt, bool value)
+{
+	size_t buddy_size;	
+
+	ASSERT (b != NULL);
+	ASSERT (start <= b->bit_cnt);	// BK : why?
+
+	buddy_size = cnt_to_buddy_size(cnt);
+
+	while(true)
+	{
+		adr = pop_node(getScaleHEAD(head, buddy_size));
+		if(adr != -1)
+			return adr;
+		else	//다시
+		{
+			if(buddy_size != 256)
+				buddy_size *= 2;
+			else
+				return BITMAP_ERROR;
+		}
+
+	}
+	
+	return BITMAP_ERROR;
+}
+
+size_t
+bitmap_scan_and_flip_for_buddy (struct bitmap *b, size_t start, size_t cnt, bool value)
+{
+	size_t idx = bitmap_scan_for_buddy(b, start, cnt, value);
+	if(idx != BITMAP_ERROR)
+		bitmap_set_muliple(b, idx, cnt_to_buddy_size(cnt), !value);
+	return idx;
+}
+
+											//bk : contains_bestfit
+bool
+bitmap_contains_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, bool value)
+{
+	size_t i;
+	
+	ASSERT (b != NULL);
+	ASSERT (start <= b->bit_cnt);
+	ASSERT (start + cnt <= b->bit_cnt);
+
+	for(i = 0; i < cnt; i++)
+		if(bitmap_test(b, start + i) == value)
+			return true;
+	while(!bitmap_test(b, start + i))	
+		i++;
+	new_adr = start;
+	new_size = i;
+
+	return false;
+}
+
+											//bk : best-fit
+size_t
+bitmap_scan_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, bool value)
+{
+  size_t best_size = SIZE_MAX;
+  size_t best_adr = SIZE_MAX;
+
+
+  ASSERT (b != NULL);
+  ASSERT (start <= b->bit_cnt);
+
+  if(cnt <= b->bit_cnt)
+  {
+     size_t last = b->bit_cnt - cnt;
+     size_t i;
+     for(i = start; i <= last; i++)
+     {
+        if(!bitmap_contains_for_bestfit(b, i, cnt, !value))
+	{
+		if(best_size > new_size)
+		{
+			best_size = new_size;
+			best_adr = new_adr;
+		}
+	i += new_size;
+        }
+	else	i++;
+     }
+  }
+  return best_adr;
 
 /* Finds the first group of CNT consecutive bits in B at or after
    START that are all set to VALUE, flips them all to !VALUE,
