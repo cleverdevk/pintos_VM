@@ -13,8 +13,8 @@
 size_t latest = -1;
 
 //byounggook
-size_t new_size = -1;
-size_t new_adr = -1;
+size_t new_size = 0;
+size_t new_adr = 0;
 
 /* Element type.
 
@@ -402,7 +402,7 @@ bitmap_scan_for_buddy (const struct bitmap *b, size_t start, size_t cnt, bool va
 	while(true)
 	{
 		adr = pop_node(getScaleHEAD(head, buddy_size));
-		if(adr != -1)
+		if(adr != 9999)
 			return adr;
 		else	//다시
 		{
