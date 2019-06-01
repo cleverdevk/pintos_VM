@@ -2,8 +2,11 @@
 #define __LIB_KERNEL_BITMAP_H
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <stddef.h>
 #include <inttypes.h>
+#include "threads/malloc.h"
+
 
 /* Bitmap abstract data type. */
 
@@ -31,6 +34,40 @@ bool bitmap_contains (const struct bitmap *, size_t start, size_t cnt, bool);
 bool bitmap_any (const struct bitmap *, size_t start, size_t cnt);
 bool bitmap_none (const struct bitmap *, size_t start, size_t cnt);
 bool bitmap_all (const struct bitmap *, size_t start, size_t cnt);
+
+//for buddy system
+#define NO_VALUE 9999;
+
+typedef struct Node* Node_pointer;
+
+typedef struct Node {
+	size_t start;
+	Node_pointer next;
+	Node_pointer before;
+} Node;
+
+
+typedef struct BuddyList* BuddyListPointer;
+
+typedef struct BuddyList {
+	size_t scale;
+	BuddyListPointer upper;
+	BuddyListPointer lower;
+	Node_pointer HEAD;
+} BuddyList;
+
+BuddyListPointer head;
+
+
+
+// Node_pointer init_list();
+// void add_node(size_t start, Node_pointer HEAD, size_t scale);
+// void remove_node(Node_pointer HEAD, size_t start);
+// size_t pop_node(Node_pointer HEAD);
+// Node_pointer getScaleHEAD(BuddyListPointer buddypointer, size_t scale);
+// BuddyListPointer init_buddy_list();
+
+
 
 /* Finding set or unset bits. */
 #define BITMAP_ERROR SIZE_MAX
