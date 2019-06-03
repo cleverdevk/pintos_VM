@@ -393,7 +393,7 @@ size_t
 bitmap_scan_for_buddy (const struct bitmap *b, size_t start, size_t cnt, bool value)
 {
 	size_t buddy_size;	
-
+	size_t adr;
 	ASSERT (b != NULL);
 	ASSERT (start <= b->bit_cnt);	// BK : why?
 
@@ -401,7 +401,7 @@ bitmap_scan_for_buddy (const struct bitmap *b, size_t start, size_t cnt, bool va
 
 	while(true)
 	{
-		adr = pop_node(getScaleHEAD(head, buddy_size));
+//		adr = pop_node(getScaleHEAD(head, buddy_size));
 		if(adr != 9999)
 			return adr;
 		else	//다시
@@ -431,7 +431,7 @@ bool
 bitmap_contains_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, bool value)
 {
 	size_t i;
-	
+
 	ASSERT (b != NULL);
 	ASSERT (start <= b->bit_cnt);
 	ASSERT (start + cnt <= b->bit_cnt);
@@ -439,8 +439,11 @@ bitmap_contains_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, b
 	for(i = 0; i < cnt; i++)
 		if(bitmap_test(b, start + i) == value)
 			return true;
-	while(!bitmap_test(b, start + i))	
+	while(bitmap_test(b, start + i) != value){
 		i++;
+		if(start + i >= b->bit_cnt)
+			break;
+	}
 	new_adr = start;
 	new_size = i;
 
@@ -451,8 +454,8 @@ bitmap_contains_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, b
 size_t
 bitmap_scan_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, bool value)
 {
-  size_t best_size = SIZE_MAX;
-  size_t best_adr = SIZE_MAX;
+  size_t best_size = 9999;
+  size_t best_adr = 9999;
 
 
   ASSERT (b != NULL);
@@ -462,7 +465,7 @@ bitmap_scan_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, bool 
   {
      size_t last = b->bit_cnt - cnt;
      size_t i;
-     for(i = start; i <= last; i++)
+     for(i = start; i <= last; )
      {
         if(!bitmap_contains_for_bestfit(b, i, cnt, !value))
 	{
@@ -477,7 +480,7 @@ bitmap_scan_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, bool 
      }
   }
   return best_adr;
-
+}
 /* Finds the first group of CNT consecutive bits in B at or after
    START that are all set to VALUE, flips them all to !VALUE,
    and returns the index of the first bit in the group.
@@ -488,7 +491,7 @@ bitmap_scan_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, bool 
 size_t
 bitmap_scan_and_flip (struct bitmap *b, size_t start, size_t cnt, bool value)
 {
-  size_t idx = bitmap_scan_for_nextfit (b, start, cnt, value);
+  size_t idx = bitmap_scan_for_bestfit (b, start, cnt, value);
   if (idx != BITMAP_ERROR) 
     bitmap_set_multiple (b, idx, cnt, !value);
   return idx;
