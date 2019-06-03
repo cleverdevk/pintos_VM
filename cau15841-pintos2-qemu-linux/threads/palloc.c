@@ -11,6 +11,90 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 
+
+
+//frame table
+struct frame_elem {
+	void* addr;
+	bool used;
+};
+
+static struct frame_elem frame_table[367];
+
+static void init_frame_table(struct frame_elem*);
+static void mark_frame_table(struct frame_elem *, size_t, size_t, void*);
+static void demark_frame_table(struct frame_elem*, size_t, size_t);
+static bool is_available_pages(struct frame_elem*, size_t);
+static void print_frame_table(struct frame_elem*);
+
+static void init_frame_table(struct frame_elem* ft)
+{
+	ASSERT(ft != NULL);
+
+	int i;
+	for(i=0;i<367;i++)
+	{
+		ft[i].addr = NULL;
+		ft[i].used = false;
+	}
+}
+
+static void mark_frame_table(struct frame_elem* ft, size_t page_no, size_t size, void* addr)
+{
+	ASSERT(ft != NULL);
+	ASSERT((page_no >= (unsigned int)0 && page_no < (unsigned int)367));
+	ASSERT(size != 0);
+
+	int i;
+	ft[page_no].addr = addr;
+	for(i=0;i<(int)size;i++)
+		ft[page_no + i].used = true;
+}
+
+static void demark_frame_table(struct frame_elem* ft, size_t page_no, size_t size)
+{
+	ASSERT(ft != NULL);
+	ASSERT((page_no >= (unsigned int)0 && page_no < (unsigned int)367));
+	ASSERT(size != 0);
+
+	int i;
+	ft[page_no].addr = NULL;
+	for(i=0;i<(int)size;i++)
+		ft[page_no + i].used = false;
+}
+
+static bool is_available_pages(struct frame_elem* ft, size_t size)
+{
+	ASSERT(ft != NULL);
+	ASSERT(size != 0);
+
+	size_t max=0, current=0;
+	int i=0;
+	while(i < 367){
+		int current_size = 0;
+		while(ft[current].used == false)
+		{
+			size++;
+			current++;
+			if(current == 367) break;
+		}
+		if(max < current_size) max = current_size;
+		i = current;
+	}
+	return max >= size;
+}
+
+static void print_frame_table(struct frame_elem* ft)
+{
+	int i=0;
+	printf(" idx |       address       |  used    \n");
+	for(i=0;i<367;i++){
+		printf("%4d | %20d | %8d\n", i, ft[i].addr, ft[i].used);
+	}
+}
+
+
+
 /* Page allocator.  Hands out memory in page-size (or
    page-multiple) chunks.  See malloc.h for an allocator that
    hands out smaller chunks.
@@ -59,6 +143,8 @@ palloc_init (size_t user_page_limit)
   init_pool (&kernel_pool, free_start, kernel_pages, "kernel pool");
   init_pool (&user_pool, free_start + kernel_pages * PGSIZE,
              user_pages, "user pool");
+  init_frame_table(frame_table);
+  //init_buddy_list();
 }
 
 /* Obtains and returns a group of PAGE_CNT contiguous free pages.
@@ -79,10 +165,14 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
 
   lock_acquire (&pool->lock);
   page_idx = bitmap_scan_and_flip (pool->used_map, 0, page_cnt, false);
+  //page_idx = bitmap_scan_and_flip_for_buddy(pool->used_map, 0, page_cnt, false);
   lock_release (&pool->lock);
 
-  if (page_idx != BITMAP_ERROR)
+  if (page_idx != BITMAP_ERROR){
     pages = pool->base + PGSIZE * page_idx;
+    //mark frame table
+    mark_frame_table(frame_table, page_idx, page_cnt, pages);
+  }
   else
     pages = NULL;
 
@@ -96,7 +186,7 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
       if (flags & PAL_ASSERT)
         PANIC ("palloc_get: out of pages");
     }
-
+  print_frame_table(frame_table);	
   return pages;
 }
 
@@ -132,6 +222,8 @@ palloc_free_multiple (void *pages, size_t page_cnt)
     NOT_REACHED ();
 
   page_idx = pg_no (pages) - pg_no (pool->base);
+  //demark frame table
+  demark_frame_table(frame_table, page_idx, page_cnt);
 
 #ifndef NDEBUG
   memset (pages, 0xcc, PGSIZE * page_cnt); //inbae : what is this 0xCC?

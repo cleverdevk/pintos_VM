@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <stdexcpt.h>
 
 #define NO_VALUE 9999;
 
@@ -211,13 +210,4 @@ void print_status() {
 		printf("\n");
 		NextChannel = NextChannel->upper;
 	}
-}
-
-int main()
-{
-	buddyHEAD = init_buddy_list();
-	add_node(0, getScaleHEAD(buddyHEAD, 32),32);
-	add_node(64, getScaleHEAD(buddyHEAD, 32), 32);
-	add_node(32, getScaleHEAD(buddyHEAD, 32), 32);
-	print_status();
 }

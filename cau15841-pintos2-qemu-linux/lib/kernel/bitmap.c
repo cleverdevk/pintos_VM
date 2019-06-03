@@ -3,10 +3,206 @@
 #include <limits.h>
 #include <round.h>
 #include <stdio.h>
-#include "threads/malloc.h"
 #ifdef FILESYS
 #include "filesys/file.h"
 #endif
+#include "threads/malloc.h"
+
+//implement of buddylist
+
+//********************implement of buddylist*********************
+//***************************************************************
+
+//for buddy system
+#define NO_VALUE 9999;
+
+typedef struct Node* Node_pointer;
+
+
+BuddyListPointer head;
+
+Node_pointer init_list() //return HEAD NODE
+{
+	Node_pointer HEAD = malloc(sizeof(Node));
+	HEAD->start = NO_VALUE; //initialize HEAD to 9999(NOVALUE)
+	HEAD->next = NULL;
+	HEAD->before = NULL;
+	return HEAD;
+}
+
+Node_pointer getScaleHEAD(BuddyListPointer buddypointer, size_t scale)
+{
+	BuddyListPointer Next = buddypointer;
+	while (Next->scale != scale)
+		Next = Next->upper;
+	return Next->HEAD;
+}
+
+void add_node(size_t start, Node_pointer HEAD, size_t scale)
+{
+	Node_pointer Next = HEAD;
+	Node_pointer node = (Node_pointer)malloc(sizeof(Node));
+
+	node->start = start;
+
+	if (HEAD->next == NULL) {
+		HEAD->next = node;
+		node->before = HEAD;
+		node->next = NULL;
+		return;
+	}
+
+	Next = Next->next;
+
+	while (Next->start< start) {
+		if (Next->next != NULL) {
+			Next = Next->next;
+		}
+		else {
+			break;
+		}
+	}
+	
+	if (Next->next == NULL && Next->start < start) {
+		node->before = Next;
+		node->next = NULL;
+		Next->next = node;
+
+		// merge buddies
+		Node_pointer b = node->before;
+
+		if (b != NULL && b != HEAD && b->start + scale == node->start && (b->start / scale) % 2 == 0) {
+			//merge
+			add_node(b->start, getScaleHEAD(head, scale * 2), scale * 2);
+			remove_node(HEAD, b->start);
+			remove_node(HEAD, node->start);
+
+		}
+		return;
+	}
+	else {
+		node->next = Next;
+		Next->before->next = node;
+		node->before = Next->before;
+
+		// merge buddies
+		Node_pointer b = node->before;
+		Node_pointer n = node->next;
+
+		if (b != NULL && b != HEAD && b->start + scale == node->start && (b->start / scale) % 2 == 0) {
+			//merge
+			add_node(b->start, getScaleHEAD(head, scale * 2), scale * 2);
+			remove_node(HEAD, b->start);
+			remove_node(HEAD, node->start);
+
+		}
+		if (n != NULL && node->start + scale == n->start && ((n->start + scale) / scale) % 2 == 1) {
+			//merge
+			add_node(node->start, getScaleHEAD(head, scale * 2), scale * 2);
+			remove_node(HEAD, node->start);
+			remove_node(HEAD, n->start);
+		}
+	}
+
+	return;
+}
+
+void remove_node(Node_pointer HEAD, size_t start) {
+	Node_pointer Next = HEAD->next;
+	if (Next == NULL) {
+		printf("[ERROR] There is no node(EMPTY LIST ONLY HEADER).\n");
+		return;
+	}
+	while (Next->start != start) {
+		Next = Next->next;
+		if (Next == NULL) {
+			printf("[ERROR] There is no node that has start=%d\n", start);
+			return;
+		}
+	}
+	if (Next->next == NULL) { // if there is a only one node.
+		HEAD->next = NULL;
+		free(Next);
+		return;
+	}
+	Next->next->before = Next->before;
+	Next->before->next = Next->next;
+	free(Next);
+	
+	return;
+}
+
+size_t pop_node(Node_pointer HEAD)
+{
+	size_t start;
+	Node_pointer Next = HEAD->next;
+	if (Next == NULL) {
+		printf("[ERROR] There is no node(EMPTY LIST ONLY HEADER).\n");
+		return NO_VALUE;
+	}
+	if (Next->next == NULL) { // if there is a only one node.
+		HEAD->next = NULL;
+		free(Next);
+		return NO_VALUE;
+	}
+	start = Next->start;
+	HEAD->next = Next->next;
+	Next->next->before = HEAD;
+	free(Next);
+
+	return start;
+}
+
+
+
+
+void init_buddy_list() {
+	BuddyListPointer BuddyHEAD = malloc(sizeof(BuddyList));
+	BuddyListPointer current = BuddyHEAD;
+	BuddyListPointer blp = malloc(sizeof(BuddyList));
+	int ScaleArray[9] = { 1,2,4,8,16,32,64,128,256 };
+	int i;
+
+	current->scale = NO_VALUE;
+	current->lower = NULL;
+	current->upper = blp;
+	blp->lower = current;
+	blp->HEAD = init_list();
+
+	current = current->upper;
+
+	for (i = 0; i < 9; i++) {
+		BuddyListPointer blp2 = malloc(sizeof(BuddyList));
+		current->scale = ScaleArray[i];
+		current->HEAD = init_list();
+		if (i == 8) {
+			current->upper = NULL;
+			break;
+		}
+		current->upper = blp2;
+		blp2->lower = current;
+
+		current = current->upper;
+	}
+	head = BuddyHEAD;
+
+}
+
+void print_status() {
+	BuddyListPointer NextChannel = head->upper;
+	while (NextChannel->upper != NULL) {
+		printf("SCALE : %d : ", NextChannel->scale);
+		Node_pointer NextNode = NextChannel->HEAD->next;
+		while (NextNode != NULL) {
+			printf("%d ", NextNode->start);
+			NextNode = NextNode->next;
+		}
+		printf("\n");
+		NextChannel = NextChannel->upper;
+	}
+}
+
+
 
 //inbae : define new variable
 //latest position after allocation for next-fit
@@ -15,6 +211,8 @@ size_t latest = -1;
 //byounggook
 size_t new_size = 0;
 size_t new_adr = 0;
+
+BuddyListPointer head;
 
 /* Element type.
 
@@ -205,6 +403,7 @@ bitmap_flip (struct bitmap *b, size_t bit_idx)
 bool
 bitmap_test (const struct bitmap *b, size_t idx) 
 {
+	// printf("[LOG] bitmap_test Called!\n");
   ASSERT (b != NULL);
   ASSERT (idx < b->bit_cnt);
   return (b->bits[elem_idx (idx)] & bit_mask (idx)) != 0;
@@ -392,24 +591,42 @@ cnt_to_buddy_size (size_t cnt)
 size_t
 bitmap_scan_for_buddy (const struct bitmap *b, size_t start, size_t cnt, bool value)
 {
+
 	size_t buddy_size;	
 	size_t adr;
+
+	printf("[LOG] bitmap_scan_for_buddy called!\n");
+	size_t buddy_size;
+ 	 size_t adr;	
+	size_t count = 0;
+
 	ASSERT (b != NULL);
-	ASSERT (start <= b->bit_cnt);	// BK : why?
+	ASSERT (start <= b->bit_cnt);
 
 	buddy_size = cnt_to_buddy_size(cnt);
 
 	while(true)
 	{
-//		adr = pop_node(getScaleHEAD(head, buddy_size));
-		if(adr != 9999)
+		adr = pop_node(getScaleHEAD(head, buddy_size));
+		if(adr != 9999){
+			while(count <= 0)
+			{
+				add_node();
+				count--;
+			}
 			return adr;
+		}
 		else	//다시
 		{
 			if(buddy_size != 256)
+			{
+				count++;
 				buddy_size *= 2;
-			else
+			}
+			else{
+				printf("[LOG] BITMAPERROR will be returned!\n");
 				return BITMAP_ERROR;
+			}
 		}
 
 	}
@@ -420,18 +637,19 @@ bitmap_scan_for_buddy (const struct bitmap *b, size_t start, size_t cnt, bool va
 size_t
 bitmap_scan_and_flip_for_buddy (struct bitmap *b, size_t start, size_t cnt, bool value)
 {
+	printf("[LOG] bitmap_scan_and_flip_for_buddy called!\n");
 	size_t idx = bitmap_scan_for_buddy(b, start, cnt, value);
 	if(idx != BITMAP_ERROR)
-		bitmap_set_muliple(b, idx, cnt_to_buddy_size(cnt), !value);
+		bitmap_set_multiple(b, idx, cnt_to_buddy_size(cnt), !value);
 	return idx;
 }
 
-											//bk : contains_bestfit
+			//bk : contains of bestfit
 bool
 bitmap_contains_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, bool value)
 {
 	size_t i;
-
+	
 	ASSERT (b != NULL);
 	ASSERT (start <= b->bit_cnt);
 	ASSERT (start + cnt <= b->bit_cnt);
@@ -439,7 +657,9 @@ bitmap_contains_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, b
 	for(i = 0; i < cnt; i++)
 		if(bitmap_test(b, start + i) == value)
 			return true;
+//	printf("count\n");
 	while(bitmap_test(b, start + i) != value){
+//		printf("while(i = %d, bit_cnt = %d)		", i, b->bit_cnt);	
 		i++;
 		if(start + i >= b->bit_cnt)
 			break;
@@ -467,18 +687,26 @@ bitmap_scan_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, bool 
      size_t i;
      for(i = start; i <= last; )
      {
-        if(!bitmap_contains_for_bestfit(b, i, cnt, !value))
+//	printf("go to contains \n");
+//	printf("[bitmap_scan_for_bestfit] i = %d, cnt = %d\n", i, cnt);
+        if(!bitmap_contains_for_bestfit (b, i, cnt, !value))
 	{
+//		printf("find address!\n");
+//		printf("best_size = %d, best_adr = %d, new_size = %d, new_adr = %d\n", best_size, best_adr, new_size, new_adr);
 		if(best_size > new_size)
 		{
 			best_size = new_size;
 			best_adr = new_adr;
+//			printf("[Log] now best-fit address : %d\n", best_adr);
+//			printf("[Log] now best-fit size : %d\n", best_size);
 		}
 	i += new_size;
         }
 	else	i++;
      }
   }
+//  printf("[Log] final best-fit address : %d\n", best_adr);
+//  printf("[Log] final best-fit size : %d\n", best_size);
   return best_adr;
 }
 /* Finds the first group of CNT consecutive bits in B at or after
@@ -491,7 +719,11 @@ bitmap_scan_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, bool 
 size_t
 bitmap_scan_and_flip (struct bitmap *b, size_t start, size_t cnt, bool value)
 {
+<<<<<<< HEAD
   size_t idx = bitmap_scan_for_bestfit (b, start, cnt, value);
+=======
+  size_t idx = bitmap_scan (b, start, cnt, value);
+>>>>>>> f873fe43c989fb6326582fa4679393831ffaa02e
   if (idx != BITMAP_ERROR) 
     bitmap_set_multiple (b, idx, cnt, !value);
   return idx;
