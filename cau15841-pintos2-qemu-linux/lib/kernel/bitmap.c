@@ -3,22 +3,19 @@
 #include <limits.h>
 #include <round.h>
 #include <stdio.h>
+#include "threads/malloc.h"
 #ifdef FILESYS
 #include "filesys/file.h"
 #endif
-#include "threads/malloc.h"
 
-//implement of buddylist
 
-//********************implement of buddylist*********************
-//***************************************************************
-
-//for buddy system
 #define NO_VALUE 9999;
 
 typedef struct Node* Node_pointer;
 
-
+size_t buddy1[256] = {0, };
+size_t buddy2[256] = {256,0 };
+/*
 BuddyListPointer head;
 
 Node_pointer init_list() //return HEAD NODE
@@ -33,8 +30,13 @@ Node_pointer init_list() //return HEAD NODE
 Node_pointer getScaleHEAD(BuddyListPointer buddypointer, size_t scale)
 {
 	BuddyListPointer Next = buddypointer;
+	printf("getScaleHEAD\n");
 	while (Next->scale != scale)
+	{
+		printf("getScaleHEAD___while\n");
 		Next = Next->upper;
+	}
+	printf("getScaleHEAD_END\n");
 	return Next->HEAD;
 }
 
@@ -134,16 +136,19 @@ void remove_node(Node_pointer HEAD, size_t start) {
 
 size_t pop_node(Node_pointer HEAD)
 {
+	printf("pop?\n");
 	size_t start;
 	Node_pointer Next = HEAD->next;
+	printf("POP_NODE START!\n");
 	if (Next == NULL) {
 		printf("[ERROR] There is no node(EMPTY LIST ONLY HEADER).\n");
 		return NO_VALUE;
 	}
 	if (Next->next == NULL) { // if there is a only one node.
 		HEAD->next = NULL;
+		start = Next->start;
 		free(Next);
-		return NO_VALUE;
+		return start;
 	}
 	start = Next->start;
 	HEAD->next = Next->next;
@@ -185,7 +190,7 @@ void init_buddy_list() {
 		current = current->upper;
 	}
 	head = BuddyHEAD;
-
+	add_node(0, getScaleHEAD(head, 256), 256);
 }
 
 void print_status() {
@@ -202,17 +207,7 @@ void print_status() {
 	}
 }
 
-
-
-//inbae : define new variable
-//latest position after allocation for next-fit
-size_t latest = -1;
-
-//byounggook
-size_t new_size = 0;
-size_t new_adr = 0;
-
-BuddyListPointer head;
+*/
 
 /* Element type.
 
@@ -223,6 +218,9 @@ BuddyListPointer head;
    then bit 1 in the element represents bit K+1 in the bitmap,
    and so on. */
 typedef unsigned long elem_type;
+
+size_t new_size = 0;
+size_t new_adr = 0;
 
 /* Number of bits in an element. */
 #define ELEM_BITS (sizeof (elem_type) * CHAR_BIT)
@@ -403,12 +401,11 @@ bitmap_flip (struct bitmap *b, size_t bit_idx)
 bool
 bitmap_test (const struct bitmap *b, size_t idx) 
 {
-	// printf("[LOG] bitmap_test Called!\n");
   ASSERT (b != NULL);
   ASSERT (idx < b->bit_cnt);
   return (b->bits[elem_idx (idx)] & bit_mask (idx)) != 0;
 }
-
+
 /* Setting and testing multiple bits. */
 
 /* Sets all bits in B to VALUE. */
@@ -462,7 +459,7 @@ bitmap_contains (const struct bitmap *b, size_t start, size_t cnt, bool value)
   ASSERT (b != NULL);
   ASSERT (start <= b->bit_cnt);
   ASSERT (start + cnt <= b->bit_cnt);
-
+//	printf("bit_cnt = %d\n", b->bit_cnt);
   for (i = 0; i < cnt; i++)
     if (bitmap_test (b, start + i) == value)
       return true;
@@ -505,63 +502,17 @@ bitmap_scan (const struct bitmap *b, size_t start, size_t cnt, bool value)
   ASSERT (b != NULL);
   ASSERT (start <= b->bit_cnt);
 
-  //inbae : first-fit(initially implemented)
-  int count = 0; // inbae : for estimating cost of searching.
-
   if (cnt <= b->bit_cnt) 
     {
       size_t last = b->bit_cnt - cnt;
       size_t i;
       for (i = start; i <= last; i++)
-        if (!bitmap_contains (b, i, cnt, !value)){
-          	count++;
-		printf("[SUCCESS ALLOCATION] Search Cost : %d\n",count);
-		return i; 
-	}
+        if (!bitmap_contains (b, i, cnt, !value))
+          return i; 
     }
-  printf("[FAIL ALLOCATION] Search Cost : %d\n", count);
   return BITMAP_ERROR;
+
 }
-
-//inbae : implements next-fit
-//	  variable latest(size_t) : latest position (Global)
-size_t
-bitmap_scan_for_nextfit (const struct bitmap *b, size_t start, size_t cnt, bool value)
-{
-	int count = 0; // inbae : for estimating cost of searching.
-	ASSERT (b != NULL);
-	ASSERT (start <= b->bit_cnt);
-
-	//if latest is not assigned, initialize latest = start
-	if(latest == -1) latest = start;	
-
-	if(cnt <= b->bit_cnt)
-	{
-		size_t last = b->bit_cnt -cnt;
-		size_t last_latest = latest - cnt;
-		size_t i;
-		for(i=latest;i<=last;i++)
-			if(!bitmap_contains (b, i, cnt, !value)){
-				count++;
-				latest = i + cnt + 1;
-				printf("[SUCCESS ALLOCATION] Search Cost : %d, latest : %d\n",count,latest);
-				return i;
-			}
-		for(i=start; i<=last_latest;i++)
-			if(!bitmap_contains (b, i, cnt, !value)){
-				count++;
-				latest = i + cnt + 1;
-				printf("[SUCCESS ALLOCATION] Search Cost : %d, latest : %d\n", count, latest);
-				return i;
-			}
-
-	}
-
-	printf("[FAIL ALLOCATION] Search Cost : %d\n",count);
-	return BITMAP_ERROR;
-}
-
-//byounggook
 
 size_t
 cnt_to_buddy_size (size_t cnt)
@@ -587,46 +538,47 @@ cnt_to_buddy_size (size_t cnt)
 	else
 		return 1;
 }
-
+/*
 size_t
 bitmap_scan_for_buddy (const struct bitmap *b, size_t start, size_t cnt, bool value)
 {
-
 	size_t buddy_size;	
 	size_t adr;
-
-	printf("[LOG] bitmap_scan_for_buddy called!\n");
-	size_t buddy_size;
- 	 size_t adr;	
 	size_t count = 0;
-
+	printf("here1\n");
 	ASSERT (b != NULL);
+	printf("here2\n");
 	ASSERT (start <= b->bit_cnt);
-
+	printf("here3\n");
 	buddy_size = cnt_to_buddy_size(cnt);
-
+	printf("here4\n");
 	while(true)
 	{
+		printf("here5\n");
 		adr = pop_node(getScaleHEAD(head, buddy_size));
-		if(adr != 9999){
-			while(count <= 0)
+		printf("adr = %d\n", adr);
+		if(adr != 9999)
+		{
+			while(count > 0)
 			{
-				add_node();
+				printf("[while] buddy_size = %d\n", buddy_size);
+				buddy_size /= 2;
+				add_node(adr + buddy_size, getScaleHEAD(head, buddy_size),buddy_size);
 				count--;
 			}
 			return adr;
 		}
-		else	//다시
+		else
 		{
+			printf("[scan_while_else]\n");
 			if(buddy_size != 256)
 			{
+				printf("[scan_while_else_if]\n");
 				count++;
 				buddy_size *= 2;
 			}
-			else{
-				printf("[LOG] BITMAPERROR will be returned!\n");
+			else
 				return BITMAP_ERROR;
-			}
 		}
 
 	}
@@ -637,14 +589,128 @@ bitmap_scan_for_buddy (const struct bitmap *b, size_t start, size_t cnt, bool va
 size_t
 bitmap_scan_and_flip_for_buddy (struct bitmap *b, size_t start, size_t cnt, bool value)
 {
-	printf("[LOG] bitmap_scan_and_flip_for_buddy called!\n");
+	printf("[log] call bitmap_scan_for_buddy//start = %d,  cnt = %d,  b->bit_cnt = %d\n", start, cnt, b->bit_cnt);
 	size_t idx = bitmap_scan_for_buddy(b, start, cnt, value);
+	printf("bitmap_scan_for_buddy is run? // idx = %d\n", idx);
 	if(idx != BITMAP_ERROR)
 		bitmap_set_multiple(b, idx, cnt_to_buddy_size(cnt), !value);
 	return idx;
 }
+*/
+size_t bitmap_buddy_array (size_t start, size_t cnt);
 
-			//bk : contains of bestfit
+size_t
+bitmap_scan_and_flip_for_buddy1 (struct bitmap *b, size_t start, size_t cnt, bool value)
+{
+	if(start > b->bit_cnt || b == NULL)
+		return BITMAP_ERROR;
+
+	size_t idx = bitmap_buddy_array (start, cnt);
+	size_t j;
+	printf("\nInput Address : %d\n", idx);
+	if(idx != BITMAP_ERROR)
+	{
+		bitmap_set_multiple(b, idx, cnt_to_buddy_size(cnt), !value);
+		for(j = start; j < 256; j++){
+		if(buddy2[j] != 0 || buddy1[j] == 1)
+		printf("|	b->bits = %lu	|	buddy1[%d] = %d		|	buddy2[%d] = %d		|\n", b->bits[elem_idx (j)], j, buddy1[j], j, buddy2[j]);
+}
+	}
+	return idx;
+	
+	
+}
+
+
+size_t
+bitmap_buddy_array (size_t start, size_t cnt)
+{
+	size_t i;
+	size_t buddy_size = cnt_to_buddy_size(cnt);
+	size_t save;
+	size_t j;
+	printf("\nInput Size = %d | Buddy Size = %d\n", cnt, buddy_size);
+	ASSERT (buddy_size <= 256);
+	for(i = start; i < 256; )
+	{
+		if(buddy1[i] == 0 && buddy2[i] >= buddy_size)
+		{
+			if(buddy2[i] == buddy_size)
+			{
+				for(save = start; save < buddy_size; save++)
+					buddy1[i] = 1;
+			}
+			else
+			{
+				save = buddy2[i] / 2;
+				while(save >= buddy_size)
+				{
+					buddy2[i] = save;
+					buddy2[save + i] = save;
+					save /= 2;
+				}
+				j = i;
+				for(save = start; save < buddy_size; save++)
+				{
+					buddy1[j++] = 1;
+				}
+			}
+			
+			return i;
+		}
+		if(buddy1[i] != 0 || buddy2[i] < buddy_size)
+			i += buddy2[i];
+	}
+
+	return BITMAP_ERROR;
+	
+}
+void
+bitmap_buddy_free(size_t start, size_t cnt)
+{
+	size_t i;
+	size_t end = start + cnt;
+	size_t n;
+	size_t j;
+
+	printf("\nFree index = %d, Size = %d \n", start, cnt);
+	for(i = start; i < end; i++)
+		buddy1[i] = 0;
+	while(true)
+	{
+		if((start / buddy2[start]) % 2 == 0)
+		{
+			n = start + buddy2[start];
+			if(buddy1[n] == 0)
+			{
+				buddy2[n] = 0;
+				buddy2[start] *= 2;
+			}
+			else
+				break;
+		}
+		else
+		{
+			n = start - buddy2[start];
+			if(buddy1[n] == 0)
+			{
+				buddy2[start] = 0;
+				buddy2[n] *= 2;
+			}
+			else
+				break;
+		}
+	}
+	for(j = 0; j < 256; j++)
+	{
+		if(buddy2[j] != 0 || buddy1[j] == 1)
+		printf("|	buddy1[%d] = %d		|	buddy2[%d] = %d		|\n", j, buddy1[j], j, buddy2[j]);
+	}
+}
+
+
+
+											//bk : contains of bestfit
 bool
 bitmap_contains_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, bool value)
 {
@@ -719,13 +785,10 @@ bitmap_scan_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, bool 
 size_t
 bitmap_scan_and_flip (struct bitmap *b, size_t start, size_t cnt, bool value)
 {
-<<<<<<< HEAD
-  size_t idx = bitmap_scan_for_bestfit (b, start, cnt, value);
-=======
   size_t idx = bitmap_scan (b, start, cnt, value);
->>>>>>> f873fe43c989fb6326582fa4679393831ffaa02e
   if (idx != BITMAP_ERROR) 
     bitmap_set_multiple (b, idx, cnt, !value);
+	printf("[new log] b->bit_cnt = %d,  cnt = %d,  address = %d\n", b->bit_cnt, cnt, idx);
   return idx;
 }
 
@@ -763,7 +826,7 @@ bitmap_write (const struct bitmap *b, struct file *file)
   return file_write_at (file, b->bits, size, 0) == size;
 }
 #endif /* FILESYS */
-
+
 /* Debugging. */
 
 /* Dumps the contents of B to the console as hexadecimal. */

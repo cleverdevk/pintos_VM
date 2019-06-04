@@ -73,6 +73,9 @@ BuddyListPointer head;
 #define BITMAP_ERROR SIZE_MAX
 size_t bitmap_scan (const struct bitmap *, size_t start, size_t cnt, bool);
 size_t bitmap_scan_and_flip (struct bitmap *, size_t start, size_t cnt, bool);
+size_t cnt_to_buddy_size (size_t cnt);
+size_t bitmap_buddy_array (size_t start, size_t cnt);
+size_t bitmap_scan_and_buddy1 (struct bitmap *, size_t start, size_t cnt, bool);
 
 /* File input and output. */
 #ifdef FILESYS

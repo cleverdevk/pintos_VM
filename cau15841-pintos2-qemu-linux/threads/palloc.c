@@ -83,7 +83,7 @@ static bool is_available_pages(struct frame_elem* ft, size_t size)
 	}
 	return max >= size;
 }
-
+/*
 static void print_frame_table(struct frame_elem* ft)
 {
 	int i=0;
@@ -92,7 +92,7 @@ static void print_frame_table(struct frame_elem* ft)
 		printf("%4d | %20d | %8d\n", i, ft[i].addr, ft[i].used);
 	}
 }
-
+*/
 
 
 /* Page allocator.  Hands out memory in page-size (or
@@ -144,7 +144,7 @@ palloc_init (size_t user_page_limit)
   init_pool (&user_pool, free_start + kernel_pages * PGSIZE,
              user_pages, "user pool");
   init_frame_table(frame_table);
-  //init_buddy_list();
+//  init_buddy_list();
 }
 
 /* Obtains and returns a group of PAGE_CNT contiguous free pages.
@@ -164,14 +164,16 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
     return NULL;
 
   lock_acquire (&pool->lock);
-  page_idx = bitmap_scan_and_flip (pool->used_map, 0, page_cnt, false);
-  //page_idx = bitmap_scan_and_flip_for_buddy(pool->used_map, 0, page_cnt, false);
+//  page_idx = bitmap_scan_and_flip (pool->used_map, 0, page_cnt, false);
+//  page_idx = bitmap_scan_and_flip_for_buddy(pool->used_map, 0, page_cnt, false);
+	page_idx = bitmap_scan_and_flip_for_buddy1 (pool->used_map, 0, page_cnt, false);
+
   lock_release (&pool->lock);
 
   if (page_idx != BITMAP_ERROR){
     pages = pool->base + PGSIZE * page_idx;
     //mark frame table
-    mark_frame_table(frame_table, page_idx, page_cnt, pages);
+//    mark_frame_table(frame_table, page_idx, page_cnt, pages);
   }
   else
     pages = NULL;
@@ -186,7 +188,8 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
       if (flags & PAL_ASSERT)
         PANIC ("palloc_get: out of pages");
     }
-  print_frame_table(frame_table);	
+//  print_frame_table(frame_table);	
+	printf("\n**************************Get idx = %d**********************************\n", page_idx);
   return pages;
 }
 
@@ -232,9 +235,10 @@ palloc_free_multiple (void *pages, size_t page_cnt)
   ASSERT (bitmap_all (pool->used_map, page_idx, page_cnt));
   bitmap_set_multiple (pool->used_map, page_idx, page_cnt, false);
 
-	size_t scale = cnt_to_buddy_size(page_cnt);
-	add_node(pages, getScaleHEAD(head, scale), scale);
-
+//	size_t scale = cnt_to_buddy_size(page_cnt);
+//	add_node(pages, getScaleHEAD(head, scale), scale);
+	printf("\n*****************************Free idx = %d *****************************\n", page_idx);
+	bitmap_buddy_free (page_idx, page_cnt);
 }
 
 /* Frees the page at PAGE. */
