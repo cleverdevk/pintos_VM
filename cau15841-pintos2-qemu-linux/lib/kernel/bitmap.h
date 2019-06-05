@@ -31,6 +31,7 @@ void bitmap_set_all (struct bitmap *, bool);
 void bitmap_set_multiple (struct bitmap *, size_t start, size_t cnt, bool);
 size_t bitmap_count (const struct bitmap *, size_t start, size_t cnt, bool);
 bool bitmap_contains (const struct bitmap *, size_t start, size_t cnt, bool);
+bool bitmap_contains_for_bestfit (const struct bitmap *, size_t start, size_t cnt, bool);
 bool bitmap_any (const struct bitmap *, size_t start, size_t cnt);
 bool bitmap_none (const struct bitmap *, size_t start, size_t cnt);
 bool bitmap_all (const struct bitmap *, size_t start, size_t cnt);
@@ -73,10 +74,12 @@ BuddyListPointer head;
 #define BITMAP_ERROR SIZE_MAX
 size_t bitmap_scan (const struct bitmap *, size_t start, size_t cnt, bool);
 size_t bitmap_scan_and_flip (struct bitmap *, size_t start, size_t cnt, bool);
+size_t bitmap_scan_for_bestfit (const struct bitmap *, size_t start, size_t cnt, bool);
+
 size_t cnt_to_buddy_size (size_t cnt);
 size_t bitmap_buddy_array (size_t start, size_t cnt);
-size_t bitmap_scan_and_buddy1 (struct bitmap *, size_t start, size_t cnt, bool);
-
+size_t bitmap_scan_and_flip_for_buddy1 (struct bitmap *, size_t start, size_t cnt, bool);
+void bitmap_buddy_free (size_t start, size_t cnt);
 /* File input and output. */
 #ifdef FILESYS
 struct file;

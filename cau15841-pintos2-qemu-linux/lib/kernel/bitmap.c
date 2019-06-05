@@ -11,7 +11,7 @@
 
 #define NO_VALUE 9999;
 
-typedef struct Node* Node_pointer;
+//typedef struct Node* Node_pointer;
 
 size_t buddy1[256] = {0, };
 size_t buddy2[256] = {256,0 };
@@ -607,14 +607,14 @@ bitmap_scan_and_flip_for_buddy1 (struct bitmap *b, size_t start, size_t cnt, boo
 
 	size_t idx = bitmap_buddy_array (start, cnt);
 	size_t j;
-	printf("\nInput Address : %d\n", idx);
+//	printf("\nInput Address : %d\n", idx);
 	if(idx != BITMAP_ERROR)
 	{
 		bitmap_set_multiple(b, idx, cnt_to_buddy_size(cnt), !value);
-		for(j = start; j < 256; j++){
+/*		for(j = start; j < 256; j++){
 		if(buddy2[j] != 0 || buddy1[j] == 1)
 		printf("|	b->bits = %lu	|	buddy1[%d] = %d		|	buddy2[%d] = %d		|\n", b->bits[elem_idx (j)], j, buddy1[j], j, buddy2[j]);
-}
+}*/
 	}
 	return idx;
 	
@@ -629,7 +629,7 @@ bitmap_buddy_array (size_t start, size_t cnt)
 	size_t buddy_size = cnt_to_buddy_size(cnt);
 	size_t save;
 	size_t j;
-	printf("\nInput Size = %d | Buddy Size = %d\n", cnt, buddy_size);
+//	printf("\nInput Size = %d | Buddy Size = %d\n", cnt, buddy_size);
 	ASSERT (buddy_size <= 256);
 	for(i = start; i < 256; )
 	{
@@ -673,7 +673,7 @@ bitmap_buddy_free(size_t start, size_t cnt)
 	size_t n;
 	size_t j;
 
-	printf("\nFree index = %d, Size = %d \n", start, cnt);
+//	printf("\nFree index = %d, Size = %d \n", start, cnt);
 	for(i = start; i < end; i++)
 		buddy1[i] = 0;
 	while(true)
@@ -701,11 +701,13 @@ bitmap_buddy_free(size_t start, size_t cnt)
 				break;
 		}
 	}
+/*
 	for(j = 0; j < 256; j++)
 	{
 		if(buddy2[j] != 0 || buddy1[j] == 1)
 		printf("|	buddy1[%d] = %d		|	buddy2[%d] = %d		|\n", j, buddy1[j], j, buddy2[j]);
 	}
+*/
 }
 
 
@@ -785,10 +787,10 @@ bitmap_scan_for_bestfit (const struct bitmap *b, size_t start, size_t cnt, bool 
 size_t
 bitmap_scan_and_flip (struct bitmap *b, size_t start, size_t cnt, bool value)
 {
-  size_t idx = bitmap_scan (b, start, cnt, value);
+  size_t idx = bitmap_scan_for_bestfit (b, start, cnt, value);
   if (idx != BITMAP_ERROR) 
     bitmap_set_multiple (b, idx, cnt, !value);
-	printf("[new log] b->bit_cnt = %d,  cnt = %d,  address = %d\n", b->bit_cnt, cnt, idx);
+//	printf("[new log] b->bit_cnt = %d,  cnt = %d,  address = %d\n", b->bit_cnt, cnt, idx);
   return idx;
 }
 

@@ -83,8 +83,9 @@ main (void)
 
   /* Break command line into arguments and parse options. */
   argv = read_command_line ();
+//	printf("\n\nread_command_line = %s", *argv);
   argv = parse_options (argv);
-
+//	printf("\n\n[main check] argv = %s\n\n", *argv);
   /* Initialize ourselves as a thread so we can use locks,
      then enable console locking. */
   thread_init ();
@@ -130,11 +131,14 @@ main (void)
   printf ("Boot complete.\n");
   
   /* Run actions specified on kernel command line. */
+//	printf("\n\n[check]run_actions_argv = %s\n\n", *argv);
   run_actions (argv);
-
+//printf("a\n");
   /* Finish up. */
   shutdown ();
+//printf("b\n");
   thread_exit ();
+//printf("c\n");
 }
 
 /* Clear the "BSS", a segment that should be initialized to
@@ -228,8 +232,10 @@ read_command_line (void)
 static char **
 parse_options (char **argv) 
 {
+//	printf("\n\n*argv = %s, **argv = %c\n\n", *argv, **argv);
   for (; *argv != NULL && **argv == '-'; argv++)
     {
+//	printf("\n\nrun?\n\n");
       char *save_ptr;
       char *name = strtok_r (*argv, "=", &save_ptr);
       char *value = strtok_r (NULL, "", &save_ptr);
@@ -273,7 +279,7 @@ parse_options (char **argv)
      for reproducibility.  To fix this, give the "-r" option to
      the pintos script to request real-time execution. */
   random_init (rtc_get_time ());
-  
+//  printf("\n\nparse_options : %s\n\n", *argv);
   return argv;
 }
 
@@ -325,12 +331,13 @@ run_actions (char **argv)
       int i;
 
       /* Find action name. */
-      for (a = actions; ; a++)
+      for (a = actions; ; a++){
+//	printf("\n\na->name : %s\n\n", a->name);
         if (a->name == NULL)
           PANIC ("unknown action `%s' (use -h for help)", *argv);
         else if (!strcmp (*argv, a->name))
           break;
-
+	}
       /* Check for required arguments. */
       for (i = 1; i < a->argc; i++)
         if (argv[i] == NULL)

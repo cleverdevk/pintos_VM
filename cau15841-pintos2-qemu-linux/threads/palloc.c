@@ -167,7 +167,10 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
 //  page_idx = bitmap_scan_and_flip (pool->used_map, 0, page_cnt, false);
 //  page_idx = bitmap_scan_and_flip_for_buddy(pool->used_map, 0, page_cnt, false);
 	page_idx = bitmap_scan_and_flip_for_buddy1 (pool->used_map, 0, page_cnt, false);
-
+	printf("\n\ninput size = %d, address = %d\n\n", page_cnt, page_idx);
+//	size_t i;
+//	for(i = 0; i < 256; i++)
+//		printf("buddy1[%d] = %d		| buddy2[%d] = %d\n", i, buddy1[i], i, buddy2[i]);
   lock_release (&pool->lock);
 
   if (page_idx != BITMAP_ERROR){
@@ -189,7 +192,7 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
         PANIC ("palloc_get: out of pages");
     }
 //  print_frame_table(frame_table);	
-	printf("\n**************************Get idx = %d**********************************\n", page_idx);
+//	printf("\n**************************Get idx = %d**********************************\n", page_idx);
   return pages;
 }
 
@@ -231,14 +234,17 @@ palloc_free_multiple (void *pages, size_t page_cnt)
 #ifndef NDEBUG
   memset (pages, 0xcc, PGSIZE * page_cnt); //inbae : what is this 0xCC?
 #endif
-
+	printf("\n\nfree size = %d, address = %d\n\n", page_cnt, page_idx);
+//	size_t i;
+//	for(i = 0; i < 256; i++)
+//		printf("buddy1[%d] = %d	|	buddy2[%d] = %d\n", i, buddy1[i], i, buddy2[i]);
   ASSERT (bitmap_all (pool->used_map, page_idx, page_cnt));
   bitmap_set_multiple (pool->used_map, page_idx, page_cnt, false);
 
 //	size_t scale = cnt_to_buddy_size(page_cnt);
 //	add_node(pages, getScaleHEAD(head, scale), scale);
-	printf("\n*****************************Free idx = %d *****************************\n", page_idx);
-	bitmap_buddy_free (page_idx, page_cnt);
+//	printf("\n*****************************Free idx = %d *****************************\n", page_idx);
+//	bitmap_buddy_free (page_idx, page_cnt);
 }
 
 /* Frees the page at PAGE. */
