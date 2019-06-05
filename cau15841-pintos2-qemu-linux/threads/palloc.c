@@ -164,9 +164,9 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
     return NULL;
 
   lock_acquire (&pool->lock);
-//  page_idx = bitmap_scan_and_flip (pool->used_map, 0, page_cnt, false);
+  page_idx = bitmap_scan_and_flip (pool->used_map, 0, page_cnt, false);
 //  page_idx = bitmap_scan_and_flip_for_buddy(pool->used_map, 0, page_cnt, false);
-	page_idx = bitmap_scan_and_flip_for_buddy1 (pool->used_map, 0, page_cnt, false);
+//	page_idx = bitmap_scan_and_flip_for_buddy1 (pool->used_map, 0, page_cnt, false);
 	printf("\n\ninput size = %d, address = %d\n\n", page_cnt, page_idx);
 //	size_t i;
 //	for(i = 0; i < 256; i++)
@@ -253,6 +253,16 @@ palloc_free_page (void *page)
 {
   palloc_free_multiple (page, 1);
 }
+
+ //heesu page status print                                                                                 
+void palloc_print(enum palloc_flags flags)
+{
+    struct pool *pool = flags & PAL_USER ? &user_pool : &kernel_pool;
+    lock_acquire(&pool->lock);
+    bitmap_bin_dump(pool->used_map);
+    lock_release(&pool->lock);
+} 
+
 
 /* Initializes pool P as starting at START and ending at END,
    naming it NAME for debugging purposes. */

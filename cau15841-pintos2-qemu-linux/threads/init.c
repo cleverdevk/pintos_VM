@@ -128,6 +128,28 @@ main (void)
   filesys_init (format_filesys);
 #endif
 
+//heesu
+size_t i;
+char* allocation[10];
+
+for(int i=0;i<5;i++)
+{
+    allocation[i] = (char *) malloc(145000);
+    memset(allocation[i],0x00,145000);
+}
+
+allocation[5] = (char *) malloc(16000);
+memset(allocation[5],0x00,16000);
+
+printf("=======PAGE ALLOCATION==========\n");
+palloc_print(0);        //print page allocation
+
+for (i=0; i<4; i++) {
+	free(allocation[i]);
+	printf ("=========PAGE FREE==========\n");
+	palloc_print(0);
+}
+
   printf ("Boot complete.\n");
   
   /* Run actions specified on kernel command line. */

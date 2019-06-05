@@ -838,3 +838,16 @@ bitmap_dump (const struct bitmap *b)
   hex_dump (0, b->bits, byte_cnt (b->bit_cnt), false);
 }
 
+//heesu
+void bitmap_bin_dump(const struct bitmap *b) 
+{
+    for(int i=0;i<elem_cnt(b->bit_cnt);i++){
+        for(int j=0;j<ELEM_BITS;j++){
+            if((i*ELEM_BITS + j) < b->bit_cnt){
+                printf("%u", (unsigned int) (b->bits[i] >> j) & 0x1);
+            }   
+        }   
+        printf("\n");
+    }   
+}
+

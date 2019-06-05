@@ -90,5 +90,6 @@ bool bitmap_write (const struct bitmap *, struct file *);
 
 /* Debugging. */
 void bitmap_dump (const struct bitmap *);
+void bitmap_bin_dump(const struct bitmap *b);
 
 #endif /* lib/kernel/bitmap.h */
